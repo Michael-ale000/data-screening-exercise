@@ -1,0 +1,159 @@
+---
+title: "Immigration Detention Centers Analysis"
+author: "Michael Ale"
+date: "2025-04-26"
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# 1. Importing Necessary Libraries
+
+```{r}
+#tinytex::install_tinytex(force = TRUE)
+library(tidyverse)
+library(dplyr)
+```
+
+# 2. Loading the Dataset
+
+```{r}
+df <- read.csv("immigration-detention.csv")
+head(df)
+```
+# 3. Cleaning the Dataset
+
+### 3.1 Removing Headers in First Few Rows
+```{r}
+df <- read.csv("immigration-detention.csv", skip = 6)
+head(df)
+colnames(df)
+dim(df)
+```
+### 3.2 Handling Special characters in Name
+```{r}
+df$Name<- iconv(df$Name,from = "",to = "UTF-8", sub = "")
+df$Name <- gsub("[^A-Za-z ]", "", df$Name)#this ensures only A to Z and a to z character is in the dataframe
+head(df$Name)
+```
+### 3.3 Handling Blanks in Name,City and State
+
+```{r}
+# Name
+df <- df %>% mutate(Name = if_else(Name == "", "Unknown", Name))
+
+# City
+df$City <- trimws(df$City)
+df <- df %>%
+  mutate(City = if_else(Name == "GEAUGA COUNTY JAIL" & City == "", "CHARDON", City))
+
+# State
+df$State <- trimws(df$State)
+df <- df %>%
+  mutate(State = if_else(City == "ATLANTA", "GA", State),
+         State = if_else(City == "ENCINAL", "TX", State))  # <-- Corrected to TX
+
+```
+### 3.4 Handling Dates
+```{r}
+df <- df %>%
+  mutate(Last.Inspection.End.Date = as.Date(as.numeric(Last.Inspection.End.Date), origin = "1899-12-30"))
+```
+```{r}
+# Fix Nevada separately
+df <- df %>%
+  mutate(Last.Inspection.End.Date = if_else(
+    Name == "NEVADA SOUTHERN DETENTION CENTER",
+    as.Date("2024-09-19"),
+    Last.Inspection.End.Date
+  ))
+```
+# 4.Analyze the Data
+
+### 4.1 Create Total Population Column
+```{r}
+df <- df %>%
+  mutate(Total.Population = Level.A + Level.B + Level.C + Level.D)
+
+```
+### 4.2 Top 10 Facilities by Population
+```{r}
+top_10_facilities <- df %>%
+  arrange(desc(Total.Population)) %>%
+  slice_head(n = 10)
+
+```
+### 4.3 Top 10 States by Number of Detention Centers
+```{r}
+Each_state_detention_center <- df %>%
+  group_by(State) %>%
+  summarise(Detention_center_count = n()) %>%
+  arrange(desc(Detention_center_count)) %>%
+  slice_head(n = 10)
+
+```
+### 4.4 Top 10 States By Population in Detention Centers
+```{r}
+State_total_population <- df %>%
+  group_by(State) %>%
+  summarise(Total = sum(Total.Population, na.rm = TRUE)) %>%
+  arrange(desc(Total)) %>%
+  slice_head(n = 10)
+
+```
+# 5. Visualization
+
+### 5.1 Top 10 Largest Detention Facilities by Population
+```{r}
+ggplot(data = top_10_facilities, mapping =  aes(x = reorder(Name, Total.Population), y = Total.Population)) +
+  geom_bar(stat = "identity", fill = "black") +
+  geom_text(aes(label = round(Total.Population)), hjust = -0.5, size = 3) +
+  coord_flip() +
+  labs(title = "Top 10 Detention Facilities by Total Population",
+       x = "Detention Facility",
+       y = "Total Population") +
+  theme_minimal() +
+  theme(
+    panel.background = element_rect(fill = "white"),#while saving image i wasn't getting clear plotting so fixing it white solve the issue
+    plot.background = element_rect(fill = "white")
+  )
+
+```
+
+
+
+### 5.2 Top 10 States by Number of Detention Centers
+```{r}
+ggplot(data = Each_state_detention_center,mapping =  aes(x = reorder(State, Detention_center_count), y = Detention_center_count)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  geom_text(aes(label = Detention_center_count), hjust = -0.2, size = 3) + #adding text on each bar
+  coord_flip() + #it flips the axes as when names were not clear.
+  labs(title = "Top 10 States With Highest Number Of Detention centers",
+       x = "State",
+       y = "Number Of Detention Centers") +
+  theme_minimal()+
+  theme_minimal() +
+  theme(
+    panel.background = element_rect(fill = "white"),#while saving image i wasn't getting clear plotting so fixing it white solve the issue
+    plot.background = element_rect(fill = "white")
+  )
+```
+
+### 5.3 Top 10 States by Population in Detention Centers
+```{r}
+ggplot(data = State_total_population, aes(x = reorder(State, Total), y = Total)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  geom_text(aes(label = round(Total)), hjust = -0.2, size = 3) +
+  coord_flip() +
+  labs(title = "Top 10 States With Highest Population in Detention Centers",
+       x = "State",
+       y = "Total Population in Detention Centers") +
+  theme_minimal()
+
+```
+
