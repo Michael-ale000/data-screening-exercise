@@ -19,14 +19,13 @@ colnames(df) # shows what columns are there in the dataset
 dim(df) #give the overall dimension of the dataframe. we have 137*8 dim i.e 137 rows and 8 columns
 
 ###removing special character such as @,\,&,$ etc###
-has_special <- grepl("[^A-Za-z]",df$Name)
 view(df)
 #I face error while compiling the above code because the csv file contains non-UTF-8(or non standard) characters
 #So im converting file into UTF standard
 df$Name<- iconv(df$Name,from = "",to = "UTF-8", sub = "")
 df$Name <- gsub("[^A-Za-z ]", "", df$Name)#this ensures only A to Z and a to z character is in the dataframe
 df$Name
-
+has_special <- grepl("[^A-Za-z]",df$Name)
 df$Name<-trimws(df$Name) #removing leading and trailing white spaces
 df$Name
 
