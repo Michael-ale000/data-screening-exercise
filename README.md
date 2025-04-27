@@ -21,7 +21,7 @@ This repository contains the code and documentation for a data screening exercis
 
 1.  **Clone this repository:**
     ```bash
-    git clone [https://github.com/Michael-ale000/data-screening-exercise.git](https://github.com/Michael-ale000/data-screening-exercise.git)
+    git clone https://github.com/Michael-ale000/data-screening-exercise.git
     ```
 
 2.  **Open RStudio**
